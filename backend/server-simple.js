@@ -376,6 +376,34 @@ app.post('/api/participant/join', (req, res) => {
   }
 });
 
+// Get user response for a specific poll
+app.get('/api/poll/:pollId/response/:userId', (req, res) => {
+  try {
+    const { pollId, userId } = req.params;
+    
+    const poll = polls.get(pollId);
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+
+    const userResponse = poll.responses[userId];
+    if (!userResponse) {
+      return res.json({ hasResponded: false, response: null });
+    }
+
+    res.json({
+      hasResponded: true,
+      response: userResponse.selectedOption,
+      isCorrect: userResponse.isCorrect,
+      correctAnswer: poll.options[poll.correctAnswer]
+    });
+
+  } catch (error) {
+    console.error('Error fetching user response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get chat messages
 app.get('/api/chat/messages', (req, res) => {
   try {

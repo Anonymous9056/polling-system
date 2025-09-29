@@ -22,7 +22,7 @@ const StudentResults = () => {
     const fetchUserResponse = async () => {
       if (currentPoll.id && userId && !currentPoll.isActive) {
         try {
-          const response = await fetch(`http://localhost:3001/api/poll/${currentPoll.id}/response/${userId}`)
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/poll/${currentPoll.id}/response/${userId}`)
           if (response.ok) {
             const data = await response.json()
             setUserResponse(data)
