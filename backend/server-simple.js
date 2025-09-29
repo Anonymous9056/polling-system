@@ -17,7 +17,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'https://live-polling-frontend.onrender.com']
+      ? [process.env.FRONTEND_URL || 'https://live-polling-frontend-ef3j.onrender.com']
       : ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true
@@ -30,7 +30,7 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://live-polling-frontend.onrender.com']
+    ? [process.env.FRONTEND_URL || 'https://live-polling-frontend-ef3j.onrender.com']
     : ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
   credentials: true
 }));
