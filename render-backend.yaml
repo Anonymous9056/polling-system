@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: live-polling-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: live-polling-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://live-polling-frontend.onrender.com
+    healthCheckPath: /api/health
+
+databases:
+  - name: live-polling-db
+    plan: free
+    databaseName: live-polling
+    user: live-polling-user

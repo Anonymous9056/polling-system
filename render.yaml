@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: live-polling-system
+    env: node
+    plan: free
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        value: https://live-polling-system.onrender.com
+    healthCheckPath: /api/health
