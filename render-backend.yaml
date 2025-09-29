@@ -15,7 +15,7 @@ services:
           name: live-polling-db
           property: connectionString
       - key: FRONTEND_URL
-        value: https://live-polling-frontend.onrender.com
+        value: https://polling-system-frontend.onrender.com
     healthCheckPath: /api/health
 
 databases:

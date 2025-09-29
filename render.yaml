@@ -1,15 +1,37 @@
 services:
+  # Frontend Service
   - type: web
-    name: live-polling-system
+    name: polling-system-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://polling-system-backend-qma2.onrender.com
+
+  # Backend Service
+  - type: web
+    name: polling-system-backend
     env: node
     plan: free
-    buildCommand: npm run install:all && npm run build
-    startCommand: npm start
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: polling-system-db
+          property: connectionString
       - key: FRONTEND_URL
-        value: https://live-polling-system.onrender.com
+        value: https://polling-system-frontend.onrender.com
     healthCheckPath: /api/health
+
+# Database
+databases:
+  - name: polling-system-db
+    plan: free
+    databaseName: polling-system
+    user: polling-system-user
