@@ -12,7 +12,8 @@
     "start": "cd backend && npm start",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "lint": "cd frontend && npm run lint",
-    "preview": "cd frontend && npm run preview"
+    "preview": "cd frontend && npm run preview",
+    "postinstall": "cd backend && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
