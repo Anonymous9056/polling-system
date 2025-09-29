@@ -4,7 +4,7 @@
   "description": "Express.js backend with Socket.io for live polling system",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node server-production.js",
     "dev": "nodemon server.js",
     "dev:local": "nodemon server-local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
