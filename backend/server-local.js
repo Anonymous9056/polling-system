@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -7,13 +6,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const connectDB = require('../database/connection');
-const Poll = require('../database/models/Poll');
-const Participant = require('../database/models/Participant');
-const ChatMessage = require('../database/models/ChatMessage');
-
-// Connect to MongoDB
-connectDB();
 
 // Initialize Express app
 const app = express();
@@ -22,9 +14,7 @@ const server = http.createServer(app);
 // Configure Socket.io with CORS
 const io = socketIo(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'https://your-app-name.onrender.com']
-      : ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -35,9 +25,7 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for Socket.io compatibility
 }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://your-app-name.onrender.com']
-    : ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -51,12 +39,7 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Serve static files from the React app build
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist')));
-}
-
-// In-memory data storage (in production, use a database)
+// In-memory data storage (for local testing)
 let polls = new Map();
 let pollHistory = [];
 let activeParticipants = new Map();
@@ -73,7 +56,7 @@ function createPollResponse(poll) {
     question: poll.question,
     options: poll.options,
     duration: poll.duration,
-    correctAnswer: poll.correctAnswer, // Include correct answer for results
+    correctAnswer: poll.correctAnswer,
     isActive: poll.isActive,
     startTime: poll.startTime,
     endTime: poll.endTime,
@@ -90,7 +73,11 @@ function createPollResponse(poll) {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    message: 'Live Polling System Backend is running!'
+  });
 });
 
 // Get current poll status
@@ -108,70 +95,6 @@ app.get('/api/poll/current', (req, res) => {
 
   } catch (error) {
     console.error('Error fetching current poll:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get poll history (Teacher only)
-app.get('/api/poll/history', (req, res) => {
-  try {
-    const { teacherId } = req.query;
-
-    if (!teacherId) {
-      return res.status(400).json({ error: 'Teacher ID is required' });
-    }
-
-    // Filter history for this teacher only
-    const teacherHistory = pollHistory.filter(poll => poll.teacherId === teacherId);
-
-    // Transform the data for frontend display
-    const formattedHistory = teacherHistory.map(poll => ({
-      id: poll.id,
-      question: poll.question,
-      options: poll.options,
-      results: poll.finalResults || poll.results,
-      summary: poll.summary,
-      totalVotes: poll.summary?.totalResponses || 0,
-      correctAnswer: poll.correctAnswer,
-      createdAt: poll.createdAt,
-      endTime: poll.endTime
-    }));
-
-    res.json({
-      history: formattedHistory,
-      total: formattedHistory.length
-    });
-
-  } catch (error) {
-    console.error('Error fetching poll history:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get user response for a specific poll
-app.get('/api/poll/:pollId/response/:userId', (req, res) => {
-  try {
-    const { pollId, userId } = req.params;
-    
-    const poll = polls.get(pollId);
-    if (!poll) {
-      return res.status(404).json({ error: 'Poll not found' });
-    }
-
-    const userResponse = poll.responses[userId];
-    if (!userResponse) {
-      return res.json({ hasResponded: false, response: null });
-    }
-
-    res.json({
-      hasResponded: true,
-      response: userResponse.selectedOption,
-      isCorrect: userResponse.isCorrect,
-      correctAnswer: poll.options[poll.correctAnswer]
-    });
-
-  } catch (error) {
-    console.error('Error fetching user response:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -207,7 +130,7 @@ app.post('/api/poll/create', (req, res) => {
       question: question.trim(),
       options: options.map(opt => opt.trim()).filter(opt => opt.length > 0),
       duration: Math.min(Math.max(duration, 10), 300), // Between 10-300 seconds
-      correctAnswer: Math.max(0, Math.min(correctAnswer, options.length - 1)), // Validate correct answer index
+      correctAnswer: Math.max(0, Math.min(correctAnswer, options.length - 1)),
       isActive: false,
       responses: {},
       results: {},
@@ -354,12 +277,6 @@ function endPoll(poll) {
   });
 
   // Broadcast poll end with all the calculated results
-  console.log('Poll ended. Broadcasting results:', {
-    finalResults,
-    summary: poll.summary,
-    totalResponses
-  });
-
   io.emit('pollEnded', {
     poll: createPollResponse(poll),
     results: finalResults,
@@ -413,8 +330,6 @@ app.post('/api/poll/:pollId/response', (req, res) => {
     poll.results[selectedOption].count++;
     poll.results[selectedOption].participants.push({ studentId, studentName });
 
-    console.log(`Response recorded: ${studentName} selected ${selectedOption}. Current results:`, poll.results);
-
     // Broadcast updated results
     io.emit('responseSubmitted', {
       poll: createPollResponse(poll),
@@ -433,40 +348,6 @@ app.post('/api/poll/:pollId/response', (req, res) => {
 
   } catch (error) {
     console.error('Error submitting response:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get user's response for a specific poll (Student only)
-app.get('/api/poll/:pollId/user/:userId/response', (req, res) => {
-  try {
-    const { pollId, userId } = req.params;
-
-    const poll = polls.get(pollId);
-    
-    if (!poll) {
-      return res.status(404).json({ error: 'Poll not found' });
-    }
-
-    const userResponse = poll.responses[userId];
-    
-    if (!userResponse) {
-      return res.json({ 
-        hasResponded: false,
-        message: 'User has not responded to this poll'
-      });
-    }
-
-    res.json({
-      hasResponded: true,
-      response: userResponse.selectedOption,
-      isCorrect: userResponse.isCorrect,
-      correctAnswer: poll.options[poll.correctAnswer],
-      timestamp: userResponse.timestamp
-    });
-
-  } catch (error) {
-    console.error('Error fetching user response:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -514,7 +395,7 @@ app.get('/api/chat/messages', (req, res) => {
   }
 });
 
-// Get poll history (Teacher only)
+// Get poll history
 app.get('/api/poll/history', (req, res) => {
   try {
     res.json({ polls: pollHistory });
@@ -663,13 +544,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Catch-all handler: send back React's index.html file for any non-API routes
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
-}
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -681,6 +555,7 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Socket.io server ready for connections`);
+  console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = server;
