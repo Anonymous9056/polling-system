@@ -542,7 +542,40 @@ io.on('connection', (socket) => {
 // Catch-all handler for React Router
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
+    
+    // Check if frontend build exists
+    if (require('fs').existsSync(frontendPath)) {
+      res.sendFile(frontendPath);
+    } else {
+      // If frontend build doesn't exist, serve a simple message
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Live Polling System - Backend Running</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .status { color: #28a745; font-size: 24px; margin-bottom: 20px; }
+            .info { color: #666; margin-bottom: 30px; }
+            .api-link { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="status">✅ Backend Server Running</div>
+            <div class="info">
+              <h2>Live Polling System Backend</h2>
+              <p>The backend API is running successfully!</p>
+              <p>Frontend is not deployed yet. Deploy the frontend to access the full application.</p>
+            </div>
+            <a href="/api/health" class="api-link">Check API Health</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
   });
 }
 
