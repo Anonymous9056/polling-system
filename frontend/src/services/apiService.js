@@ -76,8 +76,8 @@ class ApiService {
   }
 
   // Poll history
-  async getPollHistory() {
-    return this.request('/polls/history');
+  async getPollHistory(teacherId) {
+    return this.request(`/poll/history?teacherId=${teacherId}`);
   }
 
   // Chat
