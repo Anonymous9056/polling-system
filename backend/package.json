@@ -2,9 +2,9 @@
   "name": "live-polling-backend",
   "version": "1.0.0",
   "description": "Express.js backend with Socket.io for live polling system",
-  "main": "server.js",
+  "main": "server-simple.js",
   "scripts": {
-    "start": "node server-production.js",
+    "start": "node server-simple.js",
     "dev": "nodemon server.js",
     "dev:local": "nodemon server-local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
